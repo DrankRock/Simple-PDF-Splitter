@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Splitter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Splitter</h1>
+        <input type="file" id="upload" accept="application/pdf"/>
+        <button onclick="splitPdf()">Split PDF</button>
+        <div id="downloadLinks"></div>
+    </div>
+    <footer>
+        Made by <a href="https://chat.openai.com/chat">ChatGPT</a>
+    </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script>
+        function getBaseFilename(filename) {
+            return filename.substring(0, filename.lastIndexOf('.')) || filename;
+        }
+
+        async function splitPdf() {
+            const fileInput = document.getElementById('upload');
+            if (!fileInput.files.length) return alert('Please select a PDF file');
+
+            const file = fileInput.files[0];
+            const baseFilename = getBaseFilename(file.name);
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+
+            const numPages = pdfDoc.getPageCount();
+            const downloadLinks = document.getElementById('downloadLinks');
+            downloadLinks.innerHTML = '';
+
+            for (let i = 0; i < numPages; i++) {
+                const newPdf = await PDFLib.PDFDocument.create();
+                const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
+                newPdf.addPage(copiedPage);
+
+                const pdfBytes = await newPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${baseFilename}-${i + 1}.pdf`;
+                link.textContent = `Download ${baseFilename}-${i + 1}.pdf`;
+                link.className = 'download-link';
+
+                downloadLinks.appendChild(link);
+            }
+        }
+    </script>
+</body>
+</html>
